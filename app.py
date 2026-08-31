@@ -1,16 +1,5 @@
 import streamlit as st
-from huggingface_hub import InferenceClient
-
-
-# -----------------------------
-# Hugging Face setup
-# -----------------------------
-
-token = st.secrets["HF_TOKEN"]
-
-client = InferenceClient(
-    api_key=token
-)
+import requests
 
 
 # -----------------------------
@@ -21,7 +10,40 @@ st.title("My AI Chatbot 🤖")
 
 
 # -----------------------------
-# System prompt
+# Sidebar Settings
+# -----------------------------
+
+st.sidebar.title("⚙️ Settings")
+
+
+model = st.sidebar.selectbox(
+    "Choose Model",
+    [
+        "openai/gpt-oss-120b"
+    ]
+)
+
+
+temperature = st.sidebar.slider(
+    "Temperature",
+    min_value=0.0,
+    max_value=2.0,
+    value=0.7,
+    step=0.1
+)
+
+
+max_tokens = st.sidebar.slider(
+    "Max Response Length",
+    min_value=50,
+    max_value=1000,
+    value=300,
+    step=50
+)
+
+
+# -----------------------------
+# System Prompt
 # -----------------------------
 
 system_prompt = """
@@ -33,43 +55,7 @@ Do not use bullet points unless necessary.
 
 
 # -----------------------------
-# Sidebar Settings
-# -----------------------------
-
-st.sidebar.title("⚙️ Settings")
-
-
-# Model selection
-model = st.sidebar.selectbox(
-    "Choose Model",
-    [
-        "openai/gpt-oss-120b"
-    ]
-)
-
-
-# Temperature
-temperature = st.sidebar.slider(
-    "Temperature",
-    min_value=0.0,
-    max_value=2.0,
-    value=0.7,
-    step=0.1
-)
-
-
-# Maximum response length
-max_tokens = st.sidebar.slider(
-    "Max Response Length",
-    min_value=50,
-    max_value=1000,
-    value=300,
-    step=50
-)
-
-
-# -----------------------------
-# Initialize chat history
+# Initialize Chat History
 # -----------------------------
 
 if "messages" not in st.session_state:
@@ -99,12 +85,11 @@ if st.sidebar.button("Clear Chat"):
 
 
 # -----------------------------
-# Display previous messages
+# Display Previous Messages
 # -----------------------------
 
 for message in st.session_state.messages:
 
-    # Don't display system prompt
     if message["role"] != "system":
 
         with st.chat_message(message["role"]):
@@ -112,7 +97,7 @@ for message in st.session_state.messages:
 
 
 # -----------------------------
-# Get user message
+# Get User Message
 # -----------------------------
 
 user_message = st.chat_input(
@@ -123,7 +108,7 @@ user_message = st.chat_input(
 if user_message:
 
     # -----------------------------
-    # Save user message
+    # Save User Message
     # -----------------------------
 
     st.session_state.messages.append(
@@ -135,7 +120,7 @@ if user_message:
 
 
     # -----------------------------
-    # Display user message
+    # Display User Message
     # -----------------------------
 
     with st.chat_message("user"):
@@ -143,46 +128,39 @@ if user_message:
 
 
     # -----------------------------
-    # Generate AI response
+    # Send Message to FastAPI
     # -----------------------------
 
     with st.chat_message("assistant"):
 
         try:
 
-            response = client.chat.completions.create(
-                model=model,
-                messages=st.session_state.messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=True
+            response = requests.post(
+                "http://127.0.0.1:8000/chat",
+                json={
+                    "message": user_message
+                }
             )
 
 
-            # Empty response initially
-            assistant_message = ""
+            # Check HTTP error
+            response.raise_for_status()
 
 
-            # Placeholder for streaming
-            placeholder = st.empty()
+            # Convert JSON response
+            data = response.json()
 
 
-            # Receive chunks
-            for chunk in response:
+            # Get AI response
+            assistant_message = data["response"]
 
-                content = chunk.choices[0].delta.content
 
-                if content:
-
-                    assistant_message += content
-
-                    placeholder.markdown(
-                        assistant_message
-                    )
+            # Display AI response
+            st.write(assistant_message)
 
 
             # -----------------------------
-            # Save AI response
+            # Save AI Response
             # -----------------------------
 
             st.session_state.messages.append(
