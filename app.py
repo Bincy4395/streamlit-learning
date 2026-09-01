@@ -20,10 +20,19 @@ st.set_page_config(
 
 st.title("My AI Chatbot 🤖")
 
-st.caption(
-    "Powered by FastAPI + Ollama + llama3.2:3b"
-)
+# st.caption(
+#     "Powered by FastAPI + Ollama + llama3.2:3b"
+# )
 
+def load_css():
+    with open("style.css", "r", encoding="utf-8") as f:
+        st.markdown(
+            f"<style>{f.read()}</style>",
+            unsafe_allow_html=True
+        )
+
+
+load_css()
 
 # ============================================================
 # System Prompt
@@ -55,12 +64,12 @@ if "messages" not in st.session_state:
 # Sidebar
 # ============================================================
 
-st.sidebar.title("⚙️ Settings")
+# st.sidebar.title("⚙️ Settings")
 
 
-# -----------------------------
+# ============================================================
 # New Chat
-# -----------------------------
+# ============================================================
 
 if st.sidebar.button(
     "➕ New Chat",
@@ -77,9 +86,9 @@ if st.sidebar.button(
     st.rerun()
 
 
-# -----------------------------
+# ============================================================
 # Model
-# -----------------------------
+# ============================================================
 
 model = st.sidebar.selectbox(
     "Choose Model",
@@ -89,9 +98,9 @@ model = st.sidebar.selectbox(
 )
 
 
-# -----------------------------
+# ============================================================
 # Temperature
-# -----------------------------
+# ============================================================
 
 temperature = st.sidebar.slider(
     "Temperature",
@@ -102,9 +111,9 @@ temperature = st.sidebar.slider(
 )
 
 
-# -----------------------------
+# ============================================================
 # Max Response Length
-# -----------------------------
+# ============================================================
 
 max_tokens = st.sidebar.slider(
     "Max Response Length",
@@ -115,9 +124,9 @@ max_tokens = st.sidebar.slider(
 )
 
 
-# -----------------------------
+# ============================================================
 # Model Information
-# -----------------------------
+# ============================================================
 
 st.sidebar.divider()
 
@@ -228,8 +237,8 @@ if user_message:
             # ------------------------------------------------
 
             for chunk in response.iter_content(
-                chunk_size=None,
-                decode_unicode=True
+                    chunk_size=1024,
+                    decode_unicode=True
             ):
 
                 if chunk:
@@ -270,7 +279,7 @@ if user_message:
 
             st.error(
                 "❌ Cannot connect to FastAPI.\n\n"
-                "Make sure the backend is running on port 8003."
+                "Make sure the backend is running on port 8004."
             )
 
 

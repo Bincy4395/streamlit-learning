@@ -10,6 +10,13 @@ def stream_chat(
     temperature: float,
     max_tokens: int
 ):
+    messages = [
+        {
+            "role": message.role,
+            "content": message.content
+        }
+        for message in messages
+    ]
 
     try:
 
@@ -25,7 +32,7 @@ def stream_chat(
                 "stream": True
             },
             stream=True,
-            timeout=120
+            timeout=(10, 180)
         )
 
         response.raise_for_status()
@@ -52,21 +59,57 @@ def stream_chat(
 
     try:
 
-        for line in response.iter_lines():
+        for line in response.iter_lines(
+            decode_unicode=True
+        ):
 
-            if line:
+            if not line:
+                continue
+
+            try:
 
                 data = json.loads(line)
 
-                content = data.get(
-                    "message",
-                    {}
-                ).get(
-                    "content"
+            except json.JSONDecodeError:
+
+                continue
+
+
+            # -----------------------------------------
+            # Ollama error
+            # -----------------------------------------
+
+            if "error" in data:
+
+                raise RuntimeError(
+                    data["error"]
                 )
 
-                if content:
-                    yield content
+
+            # -----------------------------------------
+            # Get response content
+            # -----------------------------------------
+
+            content = data.get(
+                "message",
+                {}
+            ).get(
+                "content",
+                ""
+            )
+
+
+            if content:
+                yield content
+
+
+            # -----------------------------------------
+            # Ollama finished
+            # -----------------------------------------
+
+            if data.get("done"):
+
+                break
 
     finally:
 
