@@ -129,9 +129,9 @@ if user_message:
         st.write(user_message)
 
 
-    # -----------------------------
-    # Generate AI Response
-    # -----------------------------
+# -----------------------------
+# Generate AI Response
+# -----------------------------
 
     with st.chat_message("assistant"):
 
@@ -143,13 +143,13 @@ if user_message:
 
             response = requests.post(
                 "http://127.0.0.1:8003/chat",
-
                 json={
                     "messages": st.session_state.messages,
                     "model": model,
                     "temperature": temperature,
                     "max_tokens": max_tokens
-                }
+                },
+                stream=True
             )
 
 
@@ -161,48 +161,47 @@ if user_message:
 
 
             # -----------------------------
-            # Convert Response to JSON
+            # Empty Assistant Response
             # -----------------------------
 
-            data = response.json()
+            assistant_message = ""
 
 
             # -----------------------------
-            # Check Ollama Error
+            # Create Placeholder
             # -----------------------------
 
-            if "ollama_error" in data:
-
-                st.error(
-                    f"Ollama Error: {data['ollama_error']}"
-                )
-
-            else:
-
-                # -----------------------------
-                # Get AI Response
-                # -----------------------------
-
-                assistant_message = data["response"]
+            placeholder = st.empty()
 
 
-                # -----------------------------
-                # Display AI Response
-                # -----------------------------
+            # -----------------------------
+            # Receive Streaming Chunks
+            # -----------------------------
 
-                st.write(assistant_message)
+            for chunk in response.iter_content(
+                chunk_size=None,
+                decode_unicode=True
+            ):
+
+                if chunk:
+
+                    assistant_message += chunk
+
+                    placeholder.markdown(
+                        assistant_message
+                    )
 
 
-                # -----------------------------
-                # Save AI Response
-                # -----------------------------
+            # -----------------------------
+            # Save AI Response
+            # -----------------------------
 
-                st.session_state.messages.append(
-                    {
-                        "role": "assistant",
-                        "content": assistant_message
-                    }
-                )
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": assistant_message
+                }
+            )
 
 
         except requests.exceptions.ConnectionError:
