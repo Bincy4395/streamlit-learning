@@ -41,8 +41,6 @@ def chat(request: ChatRequest):
             "ollama_error": response.text
         }
 
-    response.raise_for_status()
-
     data = response.json()
 
     return {

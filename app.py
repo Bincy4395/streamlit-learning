@@ -1,10 +1,9 @@
-
 import streamlit as st
 import requests
 
 
 # -----------------------------
-# App title
+# App Title
 # -----------------------------
 
 st.title("My AI Chatbot 🤖")
@@ -20,7 +19,6 @@ st.sidebar.title("⚙️ Settings")
 model = st.sidebar.selectbox(
     "Choose Model",
     [
-        #"openai/gpt-oss-120b"
         "llama3.2:3b"
     ]
 )
@@ -95,6 +93,7 @@ for message in st.session_state.messages:
     if message["role"] != "system":
 
         with st.chat_message(message["role"]):
+
             st.write(message["content"])
 
 
@@ -126,19 +125,25 @@ if user_message:
     # -----------------------------
 
     with st.chat_message("user"):
+
         st.write(user_message)
 
 
     # -----------------------------
-    # Send Message to FastAPI
+    # Generate AI Response
     # -----------------------------
 
     with st.chat_message("assistant"):
 
         try:
 
+            # -----------------------------
+            # Send Request to FastAPI
+            # -----------------------------
+
             response = requests.post(
                 "http://127.0.0.1:8003/chat",
+
                 json={
                     "messages": st.session_state.messages,
                     "model": model,
@@ -147,30 +152,71 @@ if user_message:
                 }
             )
 
-            # Check HTTP error
+
+            # -----------------------------
+            # Check HTTP Error
+            # -----------------------------
+
             response.raise_for_status()
 
 
-            # Convert JSON response
+            # -----------------------------
+            # Convert Response to JSON
+            # -----------------------------
+
             data = response.json()
 
 
-            # Get AI response
-            assistant_message = data["response"]
-
-            # Display AI response
-            st.write(assistant_message)
-
-
             # -----------------------------
-            # Save AI Response
+            # Check Ollama Error
             # -----------------------------
 
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": assistant_message
-                }
+            if "ollama_error" in data:
+
+                st.error(
+                    f"Ollama Error: {data['ollama_error']}"
+                )
+
+            else:
+
+                # -----------------------------
+                # Get AI Response
+                # -----------------------------
+
+                assistant_message = data["response"]
+
+
+                # -----------------------------
+                # Display AI Response
+                # -----------------------------
+
+                st.write(assistant_message)
+
+
+                # -----------------------------
+                # Save AI Response
+                # -----------------------------
+
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": assistant_message
+                    }
+                )
+
+
+        except requests.exceptions.ConnectionError:
+
+            st.error(
+                "Cannot connect to FastAPI. "
+                "Make sure the backend is running on port 8002."
+            )
+
+
+        except requests.exceptions.HTTPError as e:
+
+            st.error(
+                f"FastAPI Error: {e}"
             )
 
 
