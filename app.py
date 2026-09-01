@@ -192,7 +192,7 @@ if user_message:
             # ------------------------------------------------
 
             response = requests.post(
-                "http://127.0.0.1:8003/chat",
+                "http://127.0.0.1:8004/chat",
 
                 json={
                     "messages": st.session_state.messages,
