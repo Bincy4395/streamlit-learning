@@ -1,76 +1,50 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from huggingface_hub import InferenceClient
-from dotenv import load_dotenv
-import os
-
-
-# -----------------------------
-# Load environment variables
-# -----------------------------
-
-load_dotenv()
-
-HF_TOKEN = os.getenv("HF_TOKEN")
-
-print("HF TOKEN:", HF_TOKEN)
-
-
-# -----------------------------
-# Hugging Face client
-# -----------------------------
-
-client = InferenceClient(
-    api_key=HF_TOKEN
-)
-
-
-# -----------------------------
-# FastAPI app
-# -----------------------------
+import requests
 
 app = FastAPI()
 
 
-# -----------------------------
-# Request schema
-# -----------------------------
-
 class ChatRequest(BaseModel):
-    message: str
+    messages: list
+    model: str
+    temperature: float
+    max_tokens: int
 
-
-# -----------------------------
-# Home endpoint
-# -----------------------------
 
 @app.get("/")
 def home():
-
     return {
         "message": "AI Backend is running"
     }
 
 
-# -----------------------------
-# Chat endpoint
-# -----------------------------
-
 @app.post("/chat")
 def chat(request: ChatRequest):
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[
-            {
-                "role": "user",
-                "content": request.message
-            }
-        ]
+    response = requests.post(
+        "http://localhost:11434/api/chat",
+        json={
+            "model": request.model,
+            "messages": request.messages,
+            "options": {
+                "temperature": request.temperature,
+                "num_predict": request.max_tokens
+            },
+            "stream": False
+        }
     )
 
-    assistant_message = response.choices[0].message.content
+    if response.status_code != 200:
+        return {
+            "status": response.status_code,
+            "ollama_error": response.text
+        }
+
+    response.raise_for_status()
+
+    data = response.json()
 
     return {
-        "response": assistant_message
+        "response": data["message"]["content"]
     }

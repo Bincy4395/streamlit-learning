@@ -1,3 +1,4 @@
+
 import streamlit as st
 import requests
 
@@ -19,7 +20,8 @@ st.sidebar.title("⚙️ Settings")
 model = st.sidebar.selectbox(
     "Choose Model",
     [
-        "openai/gpt-oss-120b"
+        #"openai/gpt-oss-120b"
+        "llama3.2:3b"
     ]
 )
 
@@ -136,12 +138,14 @@ if user_message:
         try:
 
             response = requests.post(
-                "http://127.0.0.1:8000/chat",
+                "http://127.0.0.1:8003/chat",
                 json={
-                    "message": user_message
+                    "messages": st.session_state.messages,
+                    "model": model,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens
                 }
             )
-
 
             # Check HTTP error
             response.raise_for_status()
@@ -153,7 +157,6 @@ if user_message:
 
             # Get AI response
             assistant_message = data["response"]
-
 
             # Display AI response
             st.write(assistant_message)
